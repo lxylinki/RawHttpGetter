@@ -5,15 +5,6 @@
 # www.binarytides.com/python-packet-sniffer-code-linux/
 
 
-# DST IP: 216.97.236.245
-# http://david.choffnes.com/classes/cs4700sp16/2MB.log
-# http://david.choffnes.com/classes/cs4700sp16/10MB.log
-# http://david.choffnes.com/classes/cs4700sp16/project4.php
-
-
-# DST IP: 129.10.116.81
-# http://www.ccs.neu.edu 
-
 # local and remote ports
 SRC_PORT = 29110
 DST_PORT = 80
