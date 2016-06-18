@@ -1,0 +1,4 @@
+#!/bin/bash
+# this is a working example where downloaded file 
+# exactly matches the original
+sudo ./rawhttpget http://cs.nyu.edu/courses/fall98/G22.2262-001/class11.txt

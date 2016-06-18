@@ -1,0 +1,8 @@
+#!/bin/bash
+# must be executed with sudo
+# remove previously added rules:
+# this is to reset the remote connection
+sudo iptables -D INPUT -p tcp -m tcp --dport 29110 -j ACCEPT
+sudo iptables -D OUTPUT -p tcp --tcp-flags RST RST -j DROP
+# check the result
+sudo iptables -L
