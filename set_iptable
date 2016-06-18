@@ -1,0 +1,9 @@
+#!/bin/bash
+# must be executed with sudo
+# open the recv port for response
+sudo iptables -A INPUT -p tcp -m tcp --dport 29110 -j ACCEPT
+# instruct the kernel to drop outgoing TCP RST packets
+sudo iptables -A OUTPUT -p tcp --tcp-flags RST RST -j DROP
+
+# check the result
+sudo iptables -L

@@ -1,0 +1,109 @@
+#!/usr/bin/python
+import sys
+
+from subprocess import call
+
+# constants
+from consts import *
+# HTTP functions
+from http import *
+# IP TCP header construction functions
+from ip_tcp import *
+# packet manipulation functions
+from packets import *
+# socket connection functions
+from sockets import *
+
+
+
+# all segment data received: 
+# this is a dictionary with sequence number as key, data string as value 
+seg_data = {}
+# all sequence number that has been received
+seq_nums = []
+
+
+
+# filename to download
+def target_file(cmd_line):
+    if (cmd_line.split('/').pop() == ''):
+        return 'index.html'
+    else:
+        return cmd_line.split('/').pop()
+
+
+
+# note if a packet is received, use packet[0] for its string part
+if __name__=='__main__':
+    # url is entered from cmd line
+    if len(sys.argv) != 2:
+        print ('Usage: ./rawhttpget [URL]')
+        sys.exit()
+    url = sys.argv[1]
+
+    # 1. set src and dest info
+    src_ip = get_src_ip()
+    dst_ip = get_dest_ip(url)
+
+    # 2. create a sending socket and a receiving socket
+    snd_sock = send_sock()
+    rcv_sock = recv_sock()
+
+    # set filename to save
+    file_name = target_file(url)
+    print ('File to download: ' + file_name)
+
+    # 3. tcp connect 
+    syn_ack = connect(snd_sock, rcv_sock, src_ip, dst_ip, DST_PORT)
+
+    # start recording sequence number and segment data
+    record_seq_num(syn_ack[0], seq_nums)
+    record_seg_data(syn_ack[0], seg_data)
+    # get MSS after getting response
+    # update congestion window size
+    # prepare seq no and seq ack num for response
+    mss = get_mss(syn_ack[0])
+    init_cwnd = 1 * mss
+    my_seq = ack_num(syn_ack[0])
+    seq_ack = seq_num(syn_ack[0]) + 1
+    
+
+    # 4. send ACK with HTTP GET data
+    # prepare HTTP data
+    GET = build_GET(url)
+    get = build_packet(src_ip, dst_ip, my_seq, seq_ack, (0, 1, 1, 0, 0, 0), init_cwnd, GET)
+
+    # The response packet to get is: 
+    # 1. an ACK packet with no data, immediately followed by
+    #    a packet with HTTP data start
+    # 2. an ACK packet with HTTP data start
+
+    # The remote site continuously transmit a group of packets
+    # ACK options:   
+    # 1. ACK every packet
+    # 2. accumulative ACK
+    get_resp = send_recv_retry(snd_sock, rcv_sock, get, dst_ip, DST_PORT, MAX_LEN, init_cwnd)
+    
+    print ('Sent GET packet: ')
+    print_packet_info(get)
+    print ('Received initial ACK packet: ')
+    print_packet_info(get_resp[0])
+
+
+    # record sequence number and segment data
+    record_seq_num(get_resp[0], seq_nums)
+    record_seg_data(get_resp[0], seg_data)
+
+    # start from next packet data is always contained:
+    # receive resp packets with data util no resp
+    # ack the last recvd
+    recv_data(get, snd_sock, rcv_sock, get_resp, src_ip, dst_ip, DST_PORT, MAX_LEN, mss, seq_nums, seg_data)
+    write_html(seg_data, file_name)
+
+    snd_sock.close()
+    rcv_sock.close()
+
+    # restore iptables
+    call([RESTORE_IPTABLE])
+
+
